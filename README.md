@@ -43,6 +43,13 @@ map -docstring "Prev hdevtools error" global user P :hdevt-previous-error<ret>
 ![A hlint msg](./hlintmsg.png)
 
 
+There is basic support for `hdevtools findsymbol` command. For some
+reason, the first character is lost...  Now, by selecting a module from
+the list, it will be inserted into the code followed by .-character.
+
+![A hdevtools findsymbol output](./hdevtools_findsymbol.png)
+
+
 ## Installation 
 
 ```
