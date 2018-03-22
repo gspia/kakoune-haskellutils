@@ -146,7 +146,8 @@ define-command hdevt-next-error -docstring "Jump to the next line that contains 
         }
     }}
 
-define-command hdevt-previous-error -docstring "Jump to the previous line that contains an error" %{
+define-command hdevt-previous-error \
+        -docstring "Jump to the previous line that contains an error" %{
     update-option buffer hdevt_errors
     %sh{
         printf '%s\n' "$kak_opt_hdevt_errors" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | sort -t. -k1,1 -rn | {
@@ -166,3 +167,26 @@ define-command hdevt-previous-error -docstring "Jump to the previous line that c
             fi
         }
     }}
+
+
+define-command hdevt-findsymbol -params .. \
+        -docstring "Either select the symbol-string or :hdevt-findsymbol symbol" %{ %sh{
+    if [ $# -gt 0 ]; then
+        symbols=$(printf %s | eval "hdevtools findsymbol $@ ")
+    else 
+        symbols=$(printf %s | eval "hdevtools findsymbol '${kak_selection}' ")
+    fi
+    menu=$(printf %s "${symbols#?}" |  awk -F'\n' '
+        {
+            for (i=1; i<=NF; i++)
+                printf "%s", "%{"$i"} %{execute-keys i"$i".<esc>}"
+        }
+    ')
+    if [ -n "${symbols}" ]; then
+        printf 'try %%{ menu -auto-single %s }' "${menu}"
+    else
+        printf 'echo -markup "{Error}No symbols found."'
+    fi
+}}
+
+
