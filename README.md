@@ -1,6 +1,8 @@
 
 # kakoune-haskellutils
 
+IN SERIOUS WIP-mode, please, do not try to atm (29th sep 2018).
+
 These scripts provide basic commands to use haskell linters
 [hlint](https://github.com/ndmitchell/hlint) 
 and 
@@ -21,6 +23,7 @@ Currently provided commands are:
 - hdevt-next-error
 - hlint-previous-error
 - hdevt-previous-error
+- hdevt-findsymbol
 
 To make mappings, put the following into `kakrc` and rethink the letters
 at the same time.  To see the flags on the left of the screen, enabling 
