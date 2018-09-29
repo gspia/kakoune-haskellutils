@@ -43,10 +43,9 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
         eval "hlint " $kak_bufname | head -n -2  > "$dir"/stderr
         printf '%s\n' "evaluate-commands -client $kak_client echo 'hlinting done'" | kak -p "$kak_session"
         # Flags for the gutter:
-        #   line3|{red}:line11|{yellow}
+        #   stamp line3|{red} line11|{yellow}
         # Contextual error messages:
-        #   l1,c1,err1
-        #   ln,cn,err2
+        #   stamp 'l1.c1,l1.c1|err1' 'l2.c2,l2.c2|err2' 
         # Thus, we take the first line of an error, encode the field sep's and escape the
         # :-char's on the error msg in the sed's.  We also add a RS-mark (X's) into
         # the beginning of error that works as a record separator.
@@ -57,6 +56,7 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
         # TODO, change it to something not so ugly.  Couldn't get the number of
         # backslashes correct which is why these codings are here.  It would be better to
         # use something like '/\n^\//' as a RS and FS=":" and remove those sed's.
+        # cat "$dir"/stderr > /tmp/koe0.txt
         sed -e 's/X/ZYYYYYYYYZ/g' "$dir"/stderr | sed -e 's/\(^[\/0-9a-zA-Z]\)\(.*\):\([0-9]\+\):\([0-9]\+\):\(.*\):/XXXXXXXX\1\2X\3X\4X\5/g' | sed -e 's/:/\\:/g' | sed -e 's/ZYYYYYYYYZ/X/g' | awk -v file="$kak_buffile" -v stamp="$kak_timestamp" -v client="$kak_client" '
             BEGIN {
                 RS="XXXXXXXX";
@@ -65,25 +65,30 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
                 warning_count = 0;
             }
             /X[0-9]+X[0-9]+X [Ee]rror/ {
-                flags = flags " " $2 "|{red}█:";
+                # flags = flags " " $2 "|{red}█:";
+                flags = flags " " $2 "|{red}█";
                 error_count++;
             }
             /X[0-9]+X[0-9]+X Warning/ {
-                flags = flags " " $2 "|{yellow}█:";
+                # flags = flags " " $2 "|{yellow}█:";
+                flags = flags " " $2 "|{yellow}█";
                 warning_count++;
             }
             /X[0-9]+X[0-9]+X Suggestion/ {
-                flags = flags $2 "|{green}█:";
+                # flags = flags $2 "|{green}█:";
+                flags = flags " " $2 "|{green}█";
             }
             /X[0-9]+X[0-9]+X/ {
-                errors = errors ":" $2 "." $3 "," $2 "." $3 "|" ;
-                # error = $2 "." $3 "," $2 "." $3 "|" ;
+                # errors = errors " " $2 "." $3 "," $2 "." $3 "|" ;
+                error = $2 "." $3 "," $2 "." $3 "|" ;
+                # errors = $2 "." $3 "," $2 "." $3 "|" ;
                 errs = $4;
                 for (i=5; i<=NF; i++) errs = errs $i;
                 # gsub("\n","  ", errs);
                 gsub("\n","XXYXXYXX", errs);
                 # errors = errors errs;
-                error2 = error errs;
+                # error2 = error errs;
+                error2 = error "Warning Some error";
                 errors = errors " '\''" error2 "'\''"  
             }
             END {
@@ -91,19 +96,16 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
                 gsub("~", "\\~", errors)
                 # gsub("\n", "", errors)
                 # gsub("\n","XXYXXYXX", errors);
-                # print "set-option \"buffer=" file "\" hlint_flags " stamp ":" flags 
-                # print "set-option \"buffer=" file "\" hlint_flags " stamp flags 
-                # print "set-option \"buffer=" file "\" hlint_flags %{" stamp ":" flags "}"
-                # print "set-option \"buffer=" file "\" hlint_flags %{" stamp flags "}"
-                print "set-option \"buffer=" file "\" hlint_errors %~" stamp errors "~"
-                # print "set-option \"buffer=" file "\" hlint_errors " stamp errors 
-                # print "set-option \"buffer=" file "\" hlint_warning_count " warning_count
-                # print "set-option \"buffer=" file "\" hlint_error_count " error_count
+                print "set-option \"buffer=" file "\" hlint_flags " stamp flags 
+                print "set-option \"buffer=" file "\" hlint_errors " stamp errors 
+                print "set-option \"buffer=" file "\" hlint_warning_count " warning_count
+                print "set-option \"buffer=" file "\" hlint_error_count " error_count
                 print "evaluate-commands -client " client " hlint-show-counters"
             }
-        ' "$dir"/stderr | kak -p "$kak_session"
+        '  | kak -p "$kak_session"
+        # ' "$dir"/stderr | kak -p "$kak_session"
         # cut -d: -f2- "$dir"/stderr | sed "s@^@$kak_bufname:@" > "$dir"/fifo
-        cat "$dir"/stderr > /tmp/koe.txt
+        # cat "$dir"/stderr > /tmp/koe1.txt
 
         # Replace the beginning with the bufname and make sure that
         # it is :-separated and that the original :'s are escaped... To do that
@@ -111,10 +113,10 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
         # 
         # Note that this takes the dir/stderr input just like the previous awk-script.
         sed -e 's/\(^[\/0-9a-zA-Z]\)\(.*\):\([0-9]\+\):\([0-9]\+\):\(.*\):/XXXXXXXX\1\2\\X\3\\X\4\\X\5/g' "$dir"/stderr | sed -e 's/:/\\:/g'  | sed -e "s@\(^XXXXXXXX\)\(.*\)\\\X\([0-9]\+\)\\\X\([0-9]\+\)\\\X\(.*\)@$kak_bufname:\3:\4:\5@" > "$dir"/fifo
-        sed -e 's/\(^[\/0-9a-zA-Z]\)\(.*\):\([0-9]\+\):\([0-9]\+\):\(.*\):/XXXXXXXX\1\2\\X\3\\X\4\\X\5/g' "$dir"/stderr | sed -e 's/:/\\:/g'  | sed -e "s@\(^XXXXXXXX\)\(.*\)\\\X\([0-9]\+\)\\\X\([0-9]\+\)\\\X\(.*\)@$kak_bufname:\3:\4:\5@" > /tmp/koe2.txt
+        # sed -e 's/\(^[\/0-9a-zA-Z]\)\(.*\):\([0-9]\+\):\([0-9]\+\):\(.*\):/XXXXXXXX\1\2\\X\3\\X\4\\X\5/g' "$dir"/stderr | sed -e 's/:/\\:/g'  | sed -e "s@\(^XXXXXXXX\)\(.*\)\\\X\([0-9]\+\)\\\X\([0-9]\+\)\\\X\(.*\)@$kak_bufname:\3:\4:\5@" > /tmp/koe2.txt
         # The following doesn't try to escpage X's.
         # sed -e 's/\(^\/\)\(.*\):\([0-9]\+\):\([0-9]\+\):\(.*\):/XXXXXXXX\2X\3X\4X\5/g' "$dir"/stderr | sed -e 's/:/\\:/g'  | sed -e "s@\(^XXXXXXXX\)\(.*\)X\([0-9]\+\)X\([0-9]\+\)X\(.*\)@$kak_bufname:\3:\4:\5@" > "$dir"/fifo
-        cat "$dir"/stderr > /tmp/koe3.txt
+        # cat "$dir"/stderr > /tmp/koe3.txt
         # cat "$dir"/fifo > /tmp/koe3.txt
         } >/dev/null 2>&1 </dev/null &
     }
@@ -123,19 +125,39 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
 # 
 define-command -hidden hlint-show %{
     update-option buffer hlint_errors
-    # echo -debug "option value %opt{ hlint_errors }"
+    echo -debug "option value %opt{hlint_errors}"
     # echo -debug "option value %opt{ kak_opt_hlint_errors }"
     # echo -debug "hmm2 ${kak_opt_hlint_errors}"
     evaluate-commands %sh{
         eval "set -- ${kak_opt_hlint_errors}"
-        shift 
+        shift
+
+        s=""
+        for i in "$@"; do
+            s="${s}
+${i}"
+        done
+
+        # printf '%s helloreX\\n' "${s}"
+        printf %s\\n "${s}" | awk -v line="${kak_cursor_line}" \
+                                  -v line="${kak_cursor_column}" \
+           "/^${kak_cursor_line}\./"' {
+               gsub(/"/, "\"\"")
+               msg = substr($0, index($0, "|"))
+               sub(/^[^ \t]+[ \t]+/, "", msg)
+               printf "info -anchor %d.%d \"%s\"\n", line, column, msg
+           }'
+
         # Pick up the line on which the cursor is, and put row and column number
         # with a point in between.  Also decode the newlines back into the text.
-        desc=$(printf '%s\n' "${kak_opt_hlint_errors}" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | sed -ne "/^${kak_cursor_line}\.[^|]\+|.*/ { s/^[^|]\+|//g; s/'/\\\\'/g; s/\\\\:/:/g; p; }"  | sed -e 's/XXYXXYXX/\n/g' )
-        if [ -n "${desc}" ]; then
-            printf '%s\n' "info -anchor ${kak_cursor_line}.${kak_cursor_column} '${desc}'"
-        fi
-        printf '%s\n'  "echo -debug \nhmm\n ${kak_opt_hlint_errors}  "
+
+        #desc=$(printf '%s\n' "${kak_opt_hlint_errors}" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | sed -ne "/^${kak_cursor_line}\.[^|]\+|.*/ { s/^[^|]\+|//g; s/'/\\\\'/g; s/\\\\:/:/g; p; }"  | sed -e 's/XXYXXYXX/\n/g' )
+
+        # if [ -n "${desc}" ]; then
+            # printf '%s\n' "info -anchor ${kak_cursor_line}.${kak_cursor_column} '${desc}'"
+            # printf '%s\n'  "echo -debug \nhmm\n ${kak_opt_hlint_errors}  "
+            # printf '%s\n'  "echo -debug \nline\n ${kak_cursor_line}  "
+        # fi
     }
 }
 
@@ -147,7 +169,7 @@ define-command -hidden hlint-show-counters %{
 
 define-command hlint-enable -docstring "Activate automatic diagnostics of the code" %{
     add-highlighter window/hlint flag-lines default hlint_flags
-    #echo -debug "hlint_flags: %opt{hlint_flags}"
+    # echo -debug "hlint_flags: %opt{hlint_flags}"
     #echo -debug "timestamp: %val{timestamp}"
     hook window -group hlint-diagnostics NormalIdle .* %{ hlint-show }
     hook window -group hlint-diagnostics WinSetOption hlint_flags=.* %{ info; hlint-show }
