@@ -1,7 +1,9 @@
 
 # kakoune-haskellutils
 
-This is in WIP-mode, please, do not try to use atm (29th sep 2018).
+This is in WIP-mode, please, do not try to use atm (29th sep 2018). This
+works only partially with recent kakoune-versions.
+
 
 These scripts provide basic commands to use haskell linters
 [hlint](https://github.com/ndmitchell/hlint) 
