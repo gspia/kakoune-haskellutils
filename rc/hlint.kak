@@ -6,7 +6,7 @@
 
 
 # Do we need something like this?
-# 
+#
 # declare-option -docstring %{shell command to which the path of a copy of the current buffer will be passed
 # The output returned by this command is expected to comply with the following format:
 #  {filename}:{line}:{column}: {kind}: {message}} \
@@ -34,9 +34,7 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
                       nop %sh{ rm -r '$dir' }
                   }
               }"
-                  # hook -group fifo buffer BufCloseFifo .* percent curlyB
-                      # remove-hooks buffer fifo
-             
+
         { # do the parsing in the background and when ready send to the session
 
         # Remove the two last lines ("3 hints" or "No hints" at the end).
@@ -45,7 +43,7 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
         # Flags for the gutter:
         #   stamp line3|{red} line11|{yellow}
         # Contextual error messages:
-        #   stamp 'l1.c1,l1.c1|err1' 'l2.c2,l2.c2|err2' 
+        #   stamp 'l1.c1,l1.c1|err1' 'l2.c2,l2.c2|err2'
         # Thus, we take the first line of an error, encode the field sep's and escape the
         # :-char's on the error msg in the sed's.  We also add a RS-mark (X's) into
         # the beginning of error that works as a record separator.
@@ -65,34 +63,28 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
                 warning_count = 0;
             }
             /X[0-9]+X[0-9]+X [Ee]rror/ {
-                # flags = flags " " $2 "|{red}█:";
                 flags = flags " " $2 "|{red}█";
                 error_count++;
             }
             /X[0-9]+X[0-9]+X Warning/ {
-                # flags = flags " " $2 "|{yellow}█:";
                 flags = flags " " $2 "|{yellow}█";
                 warning_count++;
             }
             /X[0-9]+X[0-9]+X Suggestion/ {
-                # flags = flags $2 "|{green}█:";
                 flags = flags " " $2 "|{green}█";
             }
             /X[0-9]+X[0-9]+X/ {
-                # errors = errors " " $2 "." $3 "," $2 "." $3 "|" ;
                 error = $2 "." $3 "," $2 "." $3 "|" ;
-                # errors = $2 "." $3 "," $2 "." $3 "|" ;
                 errs = $4;
                 for (i=5; i<=NF; i++) errs = errs $i;
                 # gsub("\n","  ", errs);
                 gsub("\n","XXYXXYXX", errs);
-                # errors = errors errs;
-                # error2 = error errs;
-                error2 = error "Warning Some error";
-                errors = errors " '\''" error2 "'\''"  
+                error2 = error errs;
+                # error2 = error "Warning Some error";
+                errors = errors " '\''" error2 " '\''";
             }
             END {
-                flags = substr(flags, 1, length(flags)-1)
+                # flags = substr(flags, 1, length(flags)-1)
                 gsub("~", "\\~", errors)
                 # gsub("\n", "", errors)
                 # gsub("\n","XXYXXYXX", errors);
@@ -125,9 +117,7 @@ define-command hlint -docstring 'Parse the current buffer with a hlint' %{
 # 
 define-command -hidden hlint-show %{
     update-option buffer hlint_errors
-    echo -debug "option value %opt{hlint_errors}"
-    # echo -debug "option value %opt{ kak_opt_hlint_errors }"
-    # echo -debug "hmm2 ${kak_opt_hlint_errors}"
+    # echo -debug "hlint errors %opt{hlint_errors}"
     evaluate-commands %sh{
         eval "set -- ${kak_opt_hlint_errors}"
         shift
@@ -140,24 +130,16 @@ ${i}"
 
         # printf '%s helloreX\\n' "${s}"
         printf %s\\n "${s}" | awk -v line="${kak_cursor_line}" \
-                                  -v line="${kak_cursor_column}" \
+                                  -v column="${kak_cursor_column}" \
            "/^${kak_cursor_line}\./"' {
                gsub(/"/, "\"\"")
                msg = substr($0, index($0, "|"))
                sub(/^[^ \t]+[ \t]+/, "", msg)
+               gsub("XXYXXYXX","\n", msg)
                printf "info -anchor %d.%d \"%s\"\n", line, column, msg
+               # printf "info -anchor 18.7 \"%s\"\n", msg
+               # printf "echo -debug \"here we are, msg=\"%d.%d \"%s\n\"", line, column, msg
            }'
-
-        # Pick up the line on which the cursor is, and put row and column number
-        # with a point in between.  Also decode the newlines back into the text.
-
-        #desc=$(printf '%s\n' "${kak_opt_hlint_errors}" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | sed -ne "/^${kak_cursor_line}\.[^|]\+|.*/ { s/^[^|]\+|//g; s/'/\\\\'/g; s/\\\\:/:/g; p; }"  | sed -e 's/XXYXXYXX/\n/g' )
-
-        # if [ -n "${desc}" ]; then
-            # printf '%s\n' "info -anchor ${kak_cursor_line}.${kak_cursor_column} '${desc}'"
-            # printf '%s\n'  "echo -debug \nhmm\n ${kak_opt_hlint_errors}  "
-            # printf '%s\n'  "echo -debug \nline\n ${kak_cursor_line}  "
-        # fi
     }
 }
 
@@ -170,7 +152,7 @@ define-command -hidden hlint-show-counters %{
 define-command hlint-enable -docstring "Activate automatic diagnostics of the code" %{
     add-highlighter window/hlint flag-lines default hlint_flags
     # echo -debug "hlint_flags: %opt{hlint_flags}"
-    #echo -debug "timestamp: %val{timestamp}"
+    # echo -debug "timestamp: %val{timestamp}"
     hook window -group hlint-diagnostics NormalIdle .* %{ hlint-show }
     hook window -group hlint-diagnostics WinSetOption hlint_flags=.* %{ info; hlint-show }
 }
@@ -181,48 +163,53 @@ define-command hlint-disable -docstring "Disable automatic diagnostics of the co
 }
     # remove-highlighter window/hlflags_hlint_flags
 
+
 define-command hlint-next-error -docstring "Jump to the next line that contains an error, warning or suggestion" %{
     update-option buffer hlint_errors
     evaluate-commands %sh{
-        printf '%s\n' "$kak_opt_hlint_errors" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | {
-            # IFS = internal field separator
-            # read -r = read one line from stdin and backslashes don't escape ;-char,
-            # and put the first one into candidate and rest contains, hmm, the rest..
-            while IFS='|' read -r candidate rest
-            do
-                # substitute the first_range, if it is set, otherwise substitute candidate.
-                first_range=${first_range-$candidate}
-                if [ "${candidate%%.*}" -gt "$kak_cursor_line" ]; then
-                    range=$candidate
-                    break
-                fi
-            done
-            range=${range-$first_range}
-            if [ -n "$range" ]; then
-                printf '%s\n' "select $range"
-            else
-                printf 'echo -markup "{Error}no hlint diagnostics"\n'
+        eval "set -- ${kak_opt_hlint_errors}"
+        shift
+
+        for i in "$@"; do
+            candidate="${i%%|*}"
+            if [ "${candidate%%.*}" -gt "${kak_cursor_line}" ]; then
+                range="${candidate}"
+                break
             fi
-        }
-    }}
+        done
+
+        range="${range-${1%%|*}}"
+        if [ -n "${range}" ]; then
+            printf 'select %s\n' "${range}"
+        else
+            printf 'echo -markup "{Error}no hlint diagnostics"\n'
+        fi
+    }
+}
 
 define-command hlint-previous-error -docstring "Jump to the previous line that contains an error, warning or suggestion" %{
     update-option buffer hlint_errors
     evaluate-commands %sh{
-        printf '%s\n' "$kak_opt_hlint_errors" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | sort -t. -k1,1 -rn | {
-            while IFS='|' read -r candidate rest
-            do
-                first_range=${first_range-$candidate}
-                if [ "${candidate%%.*}" -lt "$kak_cursor_line" ]; then
-                    range=$candidate
-                    break
-                fi
-            done
-            range=${range-$first_range}
-            if [ -n "$range" ]; then
-                printf '%s\n' "select $range"
-            else
-                printf 'echo -markup "{Error}no hlint diagnostics"\n'
+        eval "set -- ${kak_opt_hlint_errors}"
+        shift
+
+        for i in "$@"; do
+            candidate="${i%%|*}"
+
+            if [ "${candidate%%.*}" -ge "${kak_cursor_line}" ]; then
+                range="${last_candidate}"
+                break
             fi
-        }
-    }}
+
+            last_candidate="${candidate}"
+        done
+
+        if [ $# -ge 1 ]; then
+            shift $(($# - 1))
+            range="${range:-${1%%|*}}"
+            printf 'select %s\n' "${range}"
+        else
+            printf 'echo -markup "{Error}no hlint diagnostics"\n'
+        fi
+    }
+}

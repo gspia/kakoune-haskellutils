@@ -79,7 +79,6 @@ define-command hdevt -docstring 'Parse the current buffer with a hdevtools' %{
                 errors = errors " '\''" error2 "'\''"  
             }
             END {
-                flags = substr(flags, 1, length(flags)-1)
                 gsub("~", "\\~", errors)
                 # gsub("\n", "", errors)
                 # gsub("\n","XXYXXYXX", errors);
@@ -120,11 +119,12 @@ ${i}"
 
         # printf '%s helloreX\\n' "${s}"
         printf %s\\n "${s}" | awk -v line="${kak_cursor_line}" \
-                                  -v line="${kak_cursor_column}" \
+                                  -v column="${kak_cursor_column}" \
            "/^${kak_cursor_line}\./"' {
                gsub(/"/, "\"\"")
                msg = substr($0, index($0, "|"))
                sub(/^[^ \t]+[ \t]+/, "", msg)
+               gsub("XXYXXYXX","\n", msg)
                printf "info -anchor %d.%d \"%s\"\n", line, column, msg
            }'
 
@@ -156,49 +156,54 @@ define-command hdevt-disable -docstring "Disable automatic diagnostics of the co
 define-command hdevt-next-error -docstring "Jump to the next line that contains an error" %{
     update-option buffer hdevt_errors
     evaluate-commands %sh{
-        printf '%s\n' "$kak_opt_hdevt_errors" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | {
-            # IFS = internal field separator
-            # read -r = read one line from stdin and backslashes don't escape ;-char,
-            # and put the first one into candidate and rest contains, hmm, the rest..
-            while IFS='|' read -r candidate rest
-            do
-                # substitute the first_range, if it is set, otherwise substitute candidate.
-                first_range=${first_range-$candidate}
-                if [ "${candidate%%.*}" -gt "$kak_cursor_line" ]; then
-                    range=$candidate
-                    break
-                fi
-            done
-            range=${range-$first_range}
-            if [ -n "$range" ]; then
-                printf '%s\n' "select $range"
-            else
-                printf 'echo -markup "{Error}no hdevtools diagnostics"\n'
+        eval "set -- ${kak_opt_hdevt_errors}"
+        shift
+
+        for i in "$@"; do
+            candidate="${i%%|*}"
+            if [ "${candidate%%.*}" -gt "${kak_cursor_line}" ]; then
+                range="${candidate}"
+                break
             fi
-        }
-    }}
+        done
+
+        range="${range-${1%%|*}}"
+        if [ -n "${range}" ]; then
+            printf 'select %s\n' "${range}"
+        else
+            printf 'echo -markup "{Error}no hdevtools diagnostics"\n'
+        fi
+    }
+}
+
 
 define-command hdevt-previous-error \
         -docstring "Jump to the previous line that contains an error" %{
     update-option buffer hdevt_errors
     evaluate-commands %sh{
-        printf '%s\n' "$kak_opt_hdevt_errors" | sed -e 's/\([^\\]\):/\1\n/g' | tail -n +2 | sort -t. -k1,1 -rn | {
-            while IFS='|' read -r candidate rest
-            do
-                first_range=${first_range-$candidate}
-                if [ "${candidate%%.*}" -lt "$kak_cursor_line" ]; then
-                    range=$candidate
-                    break
-                fi
-            done
-            range=${range-$first_range}
-            if [ -n "$range" ]; then
-                printf '%s\n' "select $range"
-            else
-                printf 'echo -markup "{Error}no hdevtools diagnostics"\n'
+        eval "set -- ${kak_opt_hdevt_errors}"
+        shift
+
+        for i in "$@"; do
+            candidate="${i%%|*}"
+
+            if [ "${candidate%%.*}" -ge "${kak_cursor_line}" ]; then
+                range="${last_candidate}"
+                break
             fi
-        }
-    }}
+
+            last_candidate="${candidate}"
+        done
+
+        if [ $# -ge 1 ]; then
+            shift $(($# - 1))
+            range="${range:-${1%%|*}}"
+            printf 'select %s\n' "${range}"
+        else
+            printf 'echo -markup "{Error}no hdevtools diagnostics"\n'
+        fi
+    }
+}
 
 
 define-command hdevt-findsymbol -params .. \
