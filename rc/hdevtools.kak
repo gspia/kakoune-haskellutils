@@ -228,3 +228,12 @@ define-command hdevt-findsymbol -params .. \
 }}
 
 
+# And now it is possible to bind the entering into hdevtools user mode
+# to a key. E.g.
+# map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
+declare-user-mode hdevtools
+map global hdevtools r ':hdevt<ret>' -docstring "Run hdevtools check" 
+map global hdevtools e ':hdevt-enable<ret>' -docstring "Enable hdevtools" 
+map global hdevtools d ':hdevt-disable<ret>' -docstring "Disable hdevtools" 
+map global hdevtools n ':hdevt-next-error<ret>' -docstring "Next hdevtools error" 
+map global hdevtools p ':hdevt-previous-error<ret>' -docstring "Prev hdevtools error" 

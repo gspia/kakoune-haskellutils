@@ -213,3 +213,15 @@ define-command hlint-previous-error -docstring "Jump to the previous line that c
         fi
     }
 }
+
+
+# And now it is possible to bind the entering into hlint user mode
+# to a key. E.g.
+# map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
+declare-user-mode hlint
+map global hlint e ':hlint-enable<ret>' -docstring "Enable hlint" 
+map global hlint d ':hlint-disable<ret>' -docstring "Disable hlint" 
+map global hlint n ':hlint-next-error<ret>' -docstring "Next hlint warning/suggestion" 
+map global hlint p ':hlint-previous-error<ret>' -docstring "Prev hlint warning/suggestion" 
+map global hlint r ':hlint<ret>' -docstring "Run hlint" 
+
