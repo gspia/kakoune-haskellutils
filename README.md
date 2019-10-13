@@ -44,6 +44,13 @@ map -docstring "Prev hlint warning/suggestion" global user p :hlint-previous-err
 map -docstring "Prev hdevtools error" global user P :hdevt-previous-error<ret>
 ```
 
+Or just map the provided user mode, e.g.
+```
+map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
+map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
+```
+
+
 ![A hdevtools msg](./hdeverrormsg.png)
 ![A hlint msg](./hlintmsg.png)
 
