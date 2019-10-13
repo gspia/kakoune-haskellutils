@@ -1,10 +1,6 @@
 
 # kakoune-haskellutils
 
-This is in WIP-mode, please, do not try to use atm (29th sep 2018). This
-works only partially with recent kakoune-versions.
-
-
 These scripts provide basic commands to use haskell linters
 [hlint](https://github.com/ndmitchell/hlint) 
 and 
@@ -44,17 +40,10 @@ map -docstring "Prev hlint warning/suggestion" global user p :hlint-previous-err
 map -docstring "Prev hdevtools error" global user P :hdevt-previous-error<ret>
 ```
 
-Or just map the provided user mode, e.g.
+Or just map the provided user mode, e.g. (see installation below)
 ```
 map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
 map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
-```
-or with [plug.kak](https://github.com/andreyorst/plug.kak)
-```
-plug "gspia/kakoune-haskellutils" %{
-    map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
-    map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
-}
 ```
 
 
@@ -72,6 +61,14 @@ the list, it will be inserted into the code followed by .-character.
 
 ## Installation 
 
+Use [plug.kak](https://github.com/andreyorst/plug.kak)
+```
+plug "gspia/kakoune-haskellutils" %{
+    map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
+    map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
+}
+```
+or manually
 ```
 git clone https://github.com/gspia/kakoune-haskellutils
 ```
