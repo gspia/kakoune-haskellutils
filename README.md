@@ -49,6 +49,14 @@ Or just map the provided user mode, e.g.
 map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
 map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
 ```
+or with [plug.kak](https://github.com/andreyorst/plug.kak)
+```
+plug "gspia/kakoune-haskellutils" %{
+    map global user h ':enter-user-mode hlint<ret>' -docstring "hlint mode"
+    map global user H ':enter-user-mode hdevtools<ret>' -docstring "hdevtools mode"
+}
+```
+
 
 
 ![A hdevtools msg](./hdeverrormsg.png)
